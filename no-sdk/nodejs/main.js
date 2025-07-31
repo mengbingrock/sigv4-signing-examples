@@ -25,8 +25,14 @@ const amzDate = `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
 const dateStamp = amzDate.slice(0, 8);
 
 // Create the canonical request
-const canonicalUri = endpoint;
-const canonicalQuerystring = '';
+// Parse URI and query string
+let canonicalUri, canonicalQuerystring;
+if (endpoint.includes('?')) {
+  [canonicalUri, canonicalQuerystring] = endpoint.split('?', 2);
+} else {
+  canonicalUri = endpoint;
+  canonicalQuerystring = '';
+}
 const requestBody = '';
 const requestBodyHash = crypto.createHash('sha256').update(requestBody).digest('hex');
 const headers = {
@@ -38,7 +44,7 @@ if (sessionToken) {
   headers['X-Amz-Security-Token'] = sessionToken;
 }
 
-const canonicalRequest = createCanonicalRequest(method, endpoint, canonicalQuerystring, headers, requestBodyHash);
+const canonicalRequest = createCanonicalRequest(method, canonicalUri, canonicalQuerystring, headers, requestBodyHash);
 
 // Create the string to sign
 const algorithm = 'AWS4-HMAC-SHA256';
@@ -116,7 +122,7 @@ const authorizationHeader = `${algorithm} Credential=${accessKey}/${credentialSc
 // Make the request
 const options = {
   hostname: host,
-  path: canonicalUri,
+  path: endpoint,
   method,
   headers: {
     ...headers,

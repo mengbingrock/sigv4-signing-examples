@@ -17,15 +17,22 @@ region = 'us-east-1'
 endpoint = os.environ['RESTAPIPATH']
 
 # Create a datetime object for signing
-t = datetime.datetime.utcnow()
+t = datetime.datetime.now(datetime.timezone.utc)
 amzdate = t.strftime('%Y%m%dT%H%M%SZ')
 datestamp = t.strftime('%Y%m%d') 
 
 # Create the canonical request
-canonical_uri = endpoint
-canonical_querystring = ''
-canonical_headers = 'host:' + host + '\n'
-signed_headers = 'host'
+# Parse URI and query string
+if '?' in endpoint:
+    canonical_uri, query_string = endpoint.split('?', 1)
+    # Sort query parameters for canonical form
+    query_params = sorted(query_string.split('&'))
+    canonical_querystring = '&'.join(query_params)
+else:
+    canonical_uri = endpoint
+    canonical_querystring = ''
+canonical_headers = 'host:' + host + '\n' + 'x-amz-date:' + amzdate + '\n' + 'x-amz-security-token:' + session_token + '\n'
+signed_headers = 'host;x-amz-date;x-amz-security-token'
 payload_hash = hashlib.sha256(''.encode('utf-8')).hexdigest()
 canonical_request = (method + '\n' + canonical_uri + '\n' + canonical_querystring + '\n'
                      + canonical_headers + '\n' + signed_headers + '\n' + payload_hash)
@@ -59,7 +66,7 @@ headers = {'Host': host,
            'x-amz-date': amzdate,
            'x-amz-security-token': session_token,
            'Authorization': authorization_header}
-request_url = 'https://' + host + canonical_uri
+request_url = 'https://' + host + endpoint
 response = requests.get(request_url, headers=headers, timeout=5)
 response.raise_for_status()
 

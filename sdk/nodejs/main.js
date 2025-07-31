@@ -8,12 +8,16 @@ async function makeSignedRequest() {
   const sessionToken = process.env.AWS_SESSION_TOKEN;
   const service = 'execute-api';
   const host = process.env.RESTAPIHOST;
-  const canonicalURI = process.env.RESTAPIPATH;
+  const fullPath = process.env.RESTAPIPATH;
   const region = 'us-east-1';
+
+  // Parse path and query parameters
+  const [pathname, querystring] = fullPath.includes('?') ? fullPath.split('?') : [fullPath, ''];
+  const query = querystring ? Object.fromEntries(new URLSearchParams(querystring)) : {};
 
   const options = {
     hostname: host,
-    path: canonicalURI,
+    path: fullPath,
     method: 'GET',
     headers: {
       'Host': host,
@@ -35,7 +39,8 @@ async function makeSignedRequest() {
     method: options.method,
     headers: options.headers,
     hostname: host,
-    path: canonicalURI,
+    path: pathname,
+    query: query,
     protocol: 'https:'
   });
 
